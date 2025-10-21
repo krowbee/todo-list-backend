@@ -1,9 +1,7 @@
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
 const{ Strategy: JwtStrategy, ExtractJwt } = require("passport-jwt");
-const bcrypt = require("bcrypt");
 const UserModel = require("../models/User");
-const User = require("../models/User");
 
 
 
@@ -34,7 +32,7 @@ passport.use(new JwtStrategy(
     },
     async (payload, done) => {
         try{
-            const user = await User.findById(payload.id);
+            const user = await UserModel.findById(payload.id);
 
             if (!user) return done(null, false);
 

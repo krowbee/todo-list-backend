@@ -1,14 +1,14 @@
 
 const jwt = require("jsonwebtoken");
 const UserModel = require("../models/User");
-const User = require("../models/User");
-const cookieParser = require("cookie-parser");
+
 const ACCESS_SECRET = process.env.ACCESS_SECRET;
 const REFRESH_SECRET = process.env.REFRESH_SECRET;
+
 const cookieOptions = {
             httpOnly:true,
-            secure:true,
-            sameSite:"none",
+            secure: process.env.NODE_ENV == "production",
+            sameSite:"None",
             maxAge: 7 * 24 * 60 * 60 * 1000
         }
 
@@ -28,12 +28,36 @@ const generateTokens = (user) => {
         return {accessToken, refreshToken};
 }
 
+const validateRegisterData = (username, email, password) => {
+    if (!username) return { isValid: false, message: "Username required!" };
+    if (username.length < 6) return { isValid: false, message: "Username too short!" };
+    if (!/^[a-z0-9_-]+$/.test(username)) {
+        return { isValid: false, message: "Username must be lowercase letters, numbers, - or _" };
+    }
+
+    
+    if (!email) return { isValid: false, message: "Email required!" };
+    if (email.length < 6) return { isValid: false, message: "Too short for email" };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+        return { isValid: false, message: "Invalid email" };
+    }
+
+    
+    if (!password) return { isValid: false, message: "Password required!!" };
+    if (password.length < 8) return { isValid: false, message: "Password too short" };
+
+    return { isValid:true };
+}
+
 exports.register = async (req, res) =>{
     try{
         const { username, email, password } = req.body;
+        
+        const validation = validateRegisterData(username, email, password);
+        if (!validation.isValid) return res.status(400).json({ message:validation.message });
 
         const isExistingUser = await UserModel.findOne({ email });
-        if (isExistingUser) return res.status(409).json("User already exists");
+        if (isExistingUser) return res.status(409).json({message:"User already exists"});
 
         const user = await UserModel.create({username, email, password})
 
@@ -47,7 +71,7 @@ exports.register = async (req, res) =>{
         res.cookie("refreshToken", refreshToken, cookieOptions)
         res.status(200).json({ accessToken, user:safeUser })
     } catch(err){
-        res.status(500).json("Internal error")
+        res.status(500).json({message:"Internal error"})
     }
 };
 
